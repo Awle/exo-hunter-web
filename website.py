@@ -9,23 +9,30 @@ import seaborn as sns
 from scipy.signal import savgol_filter
 from pyts.preprocessing import InterpolationImputer
 
-st.set_page_config(layout="wide")
-st.markdown("""
-    <style>
+# Configure page
+st.set_page_config(layout="wide", page_title="ExoHunter", page_icon="🪐")
 
-    .reportview-container {
-        # background: url("https://www.visualcapitalist.com/wp-content/uploads/2020/02/solar-system-map-1200px.jpg")
-    }
-
-    .sidebar .sidebar-content {
-        background: url("https://external-preview.redd.it/GH809NDLjwgm3K6jIDr2YDoh_2SG4VTqG0P_9Aus028.jpg?auto=webp&s=7c4a90eee99a427eef1f6a13863991b06bb11a0c")
-        background-size: cover;
-    }
-    </style>
-    """,
+#Reduce all padding
+padding = 0
+st.markdown(f""" <style>
+    .reportview-container .main .block-container{{
+        padding-top: {padding}rem;
+        # padding-right: {padding}rem;
+        # padding-left: {padding}rem;
+        padding-bottom: {padding}rem;
+    }} </style> """,
             unsafe_allow_html=True)
 
-
+# Set background
+page_bg_img = '''
+<style>
+body {
+background-image: url("https://www.almanac.com/sites/default/files/styles/landscape/public/image_nodes/sunflower-1627193_1920.jpg?itok=dhvHrrYK");
+background-size: cover;
+}
+</style>
+'''
+st.markdown(page_bg_img, unsafe_allow_html=True)
 
 # Title
 st.markdown("<h1 style='text-align: center; color: white;'>Welcome to The Exoplanet Hunter</h1>",
@@ -45,59 +52,67 @@ final_res=None
 # Read uploads
 uploaded_files = st.file_uploader('Select a CSV file', accept_multiple_files=True)
 for uploaded_file in uploaded_files:
-    df = pd.read_csv(uploaded_file, index_col='KepID')
+    df = pd.read_csv(uploaded_file)
     # list_of_values = list(df['0'].values)
     if df is not None:
         data_input=True
-    # st.write('Filename:', uploaded_file.name)
 
 #Prep data and dump data into a csv file for animation.py to use
 if data_input:
     df.to_csv('animation_data.csv',index=False)
-    X_imp = InterpolationImputer().fit_transform(df-df.mean().mean())
-    X_filt = savgol_filter(X_imp, 71, 3)
-    data_fft = pd.DataFrame(np.abs(np.fft.fft(X_filt, axis=1)))
-    data_fft = data_fft.iloc[:,:(len(data_fft) // 2)]
-    X = data_fft.iloc[60]
+else:
+    df = pd.read_csv('data/pos_ex.csv')
+
+X_imp = df.interpolate().squeeze()
+X_filt = savgol_filter(X_imp, 71, 3)
+# data_fft = pd.DataFrame(np.abs(np.fft.fft(X_filt, axis=1)))
+# data_fft = data_fft.iloc[:,:(len(data_fft) // 2)]
+# X = data_fft.iloc[60]
 
 # Output the user's data in a digestible graph
 if data_input:
     st.markdown(
         "<h2 style='text-align: left; color: white;'>Your Data:</h2>",
         unsafe_allow_html=True)
-    #Easy draw of the data
 
-    st.markdown(f'FFT shape: {X.shape[-1]}')
-
-    # Raw Data
+# Raw Data
+if data_input:
     st.markdown(
         "<h3 style='text-align: center; color: white;'>Raw Data</h3>",
         unsafe_allow_html=True)
-    fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
-    sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1), y=X_imp[0], ax=ax1, color='orange')
-    ax1.axis('off')
-    st.pyplot(fig1, transparent=True)
+else:
+    st.markdown("<h3 style='text-align: center; color: white;'>Example Raw Data</h3>",
+                unsafe_allow_html=True)
+fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
+sns.set(style="ticks", rc={"lines.linewidth": 7})
+sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1), y=X_imp, ax=ax1, color='orange')
+ax1.axis('off')
+st.pyplot(fig1, transparent=True)
 
-    # Filtered Data
+# Filtered Data
+if data_input:
     st.markdown(
         "<h3 style='text-align: center; color: white;'>Filtered Data</h3>",
         unsafe_allow_html=True)
-    fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
-    sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1), y=X_filt[0], ax=ax2, color='orange')
-    ax2.axis('off')
-    st.pyplot(fig2, transparent=True)
-
-    # FFT
+else:
     st.markdown(
-        "<h3 style='text-align: center; color: white;'>Frequency Data</h3>",
+        "<h3 style='text-align: center; color: white;'>Example Filtered Data</h3>",
         unsafe_allow_html=True)
-    fig3, ax3 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
-    sns.lineplot(x=np.arange(0, len(X)-1, 1), y=X[1:], ax=ax3, color='orange')
-    ax3.axis('off')
-    st.pyplot(fig3, transparent=True)
+fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
+sns.set(style="ticks", rc={"lines.linewidth": 7})
+sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1), y=X_filt, ax=ax2, color='orange')
+ax2.axis('off')
+st.pyplot(fig2, transparent=True)
+
+# # FFT
+# st.markdown(
+#     "<h3 style='text-align: center; color: white;'>Frequency Data</h3>",
+#     unsafe_allow_html=True)
+# fig3, ax3 = plt.subplots(1, 1, figsize=(72, 16))
+# sns.set(style="ticks", rc={"lines.linewidth": 7})
+# sns.lineplot(x=np.arange(0, len(X)-1, 1), y=X[1:], ax=ax3, color='orange')
+# ax3.axis('off')
+# st.pyplot(fig3, transparent=True)
 
 #url = 'https://exohunter-container-2zte5wxl7q-an.a.run.app'
 url = 'http://127.0.0.1:8000/predict'
