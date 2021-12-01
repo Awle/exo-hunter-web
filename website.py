@@ -53,7 +53,8 @@ final_res=None
 uploaded_files = st.file_uploader('Select a CSV file', accept_multiple_files=True)
 for uploaded_file in uploaded_files:
     df = pd.read_csv(uploaded_file)
-    # list_of_values = list(df['0'].values)
+    df = df.interpolate()
+    list_of_values = list(df.values[:,0]) #list(np.nan_to_num(df.values[:,0], copy=False, nan=-666))
     if df is not None:
         data_input=True
 
@@ -115,7 +116,7 @@ st.pyplot(fig2, transparent=True)
 # st.pyplot(fig3, transparent=True)
 
 #url = 'https://exohunter-container-2zte5wxl7q-an.a.run.app'
-url = 'http://127.0.0.1:8000/predict'
+url = 'http://127.0.0.1:8000/predictcurve'
 
 # Output results
 if data_input:
@@ -129,7 +130,7 @@ if list_of_values:
     final_res = response['prediction']
     final_res
 
-    st.metric(label='Confidence level', value='60%', delta=None, delta_color="normal")
+
 
 
 if final_res == 'This star is LIKELY to have exoplanet(s)':
