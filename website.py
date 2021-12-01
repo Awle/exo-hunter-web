@@ -7,7 +7,6 @@ from manim import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import savgol_filter
-from pyts.preprocessing import InterpolationImputer
 
 # Configure page
 st.set_page_config(layout="wide", page_title="ExoHunter", page_icon="🪐")
@@ -26,62 +25,90 @@ st.markdown(f""" <style>
 # Set background
 page_bg_img = '''
 <style>
-body {
-background-image: url("https://www.almanac.com/sites/default/files/styles/landscape/public/image_nodes/sunflower-1627193_1920.jpg?itok=dhvHrrYK");
-background-size: cover;
+.stApp {
+background-image: url("https://i.pinimg.com/originals/1e/2e/94/1e2e94461ceb179772740c2243763014.jpg");
+# background-size: cover;
+}
+.stApp:before {
+  content: "";
+  position: fixed;
+  top: 0; bottom: 0; left: 0; right: 0;
+  background: hsla(180,0%,0%,0.65);
+  pointer-events: none;
 }
 </style>
 '''
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# st.markdown('<style>body{background-color: Green;}</style>',
+#             unsafe_allow_html=True)
+
 # Title
-st.markdown("<h1 style='text-align: center; color: white;'>Welcome to The Exoplanet Hunter</h1>",
+st.markdown("<h1 style='text-align: center; '>Welcome to The Exoplanet Hunter</h1>",
             unsafe_allow_html=True)
 
 # Subtitle
 st.markdown(
-    "<h2 style='text-align: center; color: white;'>Please upload Lightcurve below:</h2>",
+    "<h2 style='text-align: center; '>Please upload a Light Curve below or enter a valid KepID:</h2>",
     unsafe_allow_html=True)
 
 # Initialise values
-data_input = False
+data_input = 0
+uploaded_file=None
+kepid=None
 df=None
 list_of_values=None
 final_res=None
+response = None
+
+# Read KepID database
+keplers = pd.read_csv('data/keplerid_for_manim.csv')
 
 # Read uploads
-uploaded_files = st.file_uploader('Select a CSV file', accept_multiple_files=True)
-for uploaded_file in uploaded_files:
+uploaded_file = st.file_uploader("Select a CSV file", type="csv", help="File extension must be '.csv'")
+if uploaded_file is not None:
+    data_input = 1
+if data_input==1:
     df = pd.read_csv(uploaded_file)
-    # list_of_values = list(df['0'].values)
+    df = df.interpolate()
+    list_of_values = list(df.values[:,0])
     if df is not None:
-        data_input=True
+        data_input=1
+
+kepid = st.text_input("Select a KepID",
+              placeholder="Please input a KepID",
+              help="Takes the form of 7 or 8 numerical digits")
+if kepid != '':
+    kepid = int(kepid)
+    if kepid in keplers[['kepid']].values:
+        data_input=2
+
+st.markdown(data_input)
+
 
 #Prep data and dump data into a csv file for animation.py to use
-if data_input:
-    df.to_csv('animation_data.csv',index=False)
-else:
+if data_input==0:
     df = pd.read_csv('data/pos_ex.csv')
+elif data_input==1:
+    df.to_csv('animation_data.csv',index=False)
 
-X_imp = df.interpolate().squeeze()
+
+X_imp = df.squeeze()
 X_filt = savgol_filter(X_imp, 71, 3)
-# data_fft = pd.DataFrame(np.abs(np.fft.fft(X_filt, axis=1)))
-# data_fft = data_fft.iloc[:,:(len(data_fft) // 2)]
+# data_fft = np.abs(np.fft.fft(X_filt, axis=1))
+# data_fft = data_fft[:(len(data_fft) // 2)]
 # X = data_fft.iloc[60]
 
 # Output the user's data in a digestible graph
-if data_input:
-    st.markdown(
-        "<h2 style='text-align: left; color: white;'>Your Data:</h2>",
-        unsafe_allow_html=True)
+
 
 # Raw Data
 if data_input:
     st.markdown(
-        "<h3 style='text-align: center; color: white;'>Raw Data</h3>",
+        "<h3 style='text-align: center; '>Your Raw Data</h3>",
         unsafe_allow_html=True)
 else:
-    st.markdown("<h3 style='text-align: center; color: white;'>Example Raw Data</h3>",
+    st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
                 unsafe_allow_html=True)
 fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
 sns.set(style="ticks", rc={"lines.linewidth": 7})
@@ -92,11 +119,11 @@ st.pyplot(fig1, transparent=True)
 # Filtered Data
 if data_input:
     st.markdown(
-        "<h3 style='text-align: center; color: white;'>Filtered Data</h3>",
+        "<h3 style='text-align: center; '>Your Filtered Data</h3>",
         unsafe_allow_html=True)
 else:
     st.markdown(
-        "<h3 style='text-align: center; color: white;'>Example Filtered Data</h3>",
+        "<h3 style='text-align: center; '>Example Filtered Data</h3>",
         unsafe_allow_html=True)
 fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
 sns.set(style="ticks", rc={"lines.linewidth": 7})
@@ -106,7 +133,7 @@ st.pyplot(fig2, transparent=True)
 
 # # FFT
 # st.markdown(
-#     "<h3 style='text-align: center; color: white;'>Frequency Data</h3>",
+#     "<h3 style='text-align: center; '>Frequency Data</h3>",
 #     unsafe_allow_html=True)
 # fig3, ax3 = plt.subplots(1, 1, figsize=(72, 16))
 # sns.set(style="ticks", rc={"lines.linewidth": 7})
@@ -115,20 +142,32 @@ st.pyplot(fig2, transparent=True)
 # st.pyplot(fig3, transparent=True)
 
 #url = 'https://exohunter-container-2zte5wxl7q-an.a.run.app'
-url = 'http://127.0.0.1:8000/predict'
+curve_url = 'http://127.0.0.1:8000/predictcurve'
+id_url = 'http://127.0.0.1:8000/predictid'
 
 # Output results
 if data_input:
     st.subheader('Result:')
 #Getting result from the API
-if list_of_values:
+if data_input==1:
     with st.spinner('Running calculation...'):
-        response = requests.post(url,json={'instances': list_of_values})
-        response = response.json()
+        try:
+            response = requests.post(curve_url,json={'instances': list_of_values})
+        except:
+            st.error('Error connecting to API')
+elif data_input==2:
+    with st.spinner('Running calculation...'):
+        try:
+            response = requests.post(id_url, json={'kepid': kepid})
+        except:
+            st.error('Error connecting to API')
+if response is not None:
+    response = response.json()
     st.success('Done!')
     final_res = response['prediction']
-    final_res
+    # final_res
 
+if final_res:
     st.metric(label='Confidence level', value='60%', delta=None, delta_color="normal")
 
 
@@ -162,7 +201,7 @@ if final_res == 'This star is LIKELY to have exoplanet(s)':
     video_file = open('media/videos/animation/480p15/FollowingGraphCamera.mp4', 'rb')
     video_bytes = video_file.read()
 
-if data_input:
+if final_res: # Depends on data_input
     st.title('Animation')
     if os.path.isfile('media/videos/animation/480p15/FollowingGraphCamera.mp4'):
         st.video(video_bytes)
