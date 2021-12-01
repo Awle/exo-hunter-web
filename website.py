@@ -83,53 +83,79 @@ if kepid != '':
     if kepid in keplers[['kepid']].values:
         data_input=2
 
-st.markdown(data_input)
+st.markdown((data_input, kepid))
 
 
 #Prep data and dump data into a csv file for animation.py to use
-if data_input==0:
-    df = pd.read_csv('data/pos_ex.csv')
-elif data_input==1:
-    df.to_csv('animation_data.csv',index=False)
+if data_input!=2:
+    if data_input==0:
+        df = pd.read_csv('data/pos_ex.csv')
+        X_imp = df.squeeze()
+        X_filt = savgol_filter(X_imp, 71, 3)
+    elif data_input==1:
+        df.to_csv('animation_data.csv',index=False)
+        X_imp = df.squeeze()
+        X_filt = savgol_filter(X_imp, 71, 3)
 
 
-X_imp = df.squeeze()
-X_filt = savgol_filter(X_imp, 71, 3)
-# data_fft = np.abs(np.fft.fft(X_filt, axis=1))
-# data_fft = data_fft[:(len(data_fft) // 2)]
-# X = data_fft.iloc[60]
+curve_url = 'http://127.0.0.1:8000/predictcurve'
+id_url = 'http://127.0.0.1:8000/predictid'
+
+# Output results
+if data_input:
+    st.subheader('Result:')
+#Getting result from the API
+if data_input == 1:
+    with st.spinner('Running calculation...'):
+        # try:
+        response = requests.post(curve_url, json={'instances': list_of_values})
+        # except:
+        #     st.error('Error connecting to API')
+elif data_input == 2:
+    with st.spinner('Running calculation...'):
+        try:
+            response = requests.post(id_url, json={'kepid': kepid})
+        except:
+            st.error('Error connecting to API')
+if response is not None:
+    response = response.json()
+    st.success('Done!')
+    final_res = response['prediction']
+    # final_res
+
 
 # Output the user's data in a digestible graph
 
-
 # Raw Data
-if data_input:
-    st.markdown(
-        "<h3 style='text-align: center; '>Your Raw Data</h3>",
-        unsafe_allow_html=True)
-else:
-    st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
-                unsafe_allow_html=True)
-fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
-sns.set(style="ticks", rc={"lines.linewidth": 7})
-sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1), y=X_imp, ax=ax1, color='orange')
-ax1.axis('off')
-st.pyplot(fig1, transparent=True)
+if data_input!=2:
+    if data_input==1:
+        st.markdown(
+            "<h3 style='text-align: center; '>Your Raw Data</h3>",
+            unsafe_allow_html=True)
+    else:
+        st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
+                    unsafe_allow_html=True)
+    fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
+    sns.set(style="ticks", rc={"lines.linewidth": 7})
+    sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1), y=X_imp, ax=ax1, color='orange')
+    ax1.axis('off')
+    st.pyplot(fig1, transparent=True)
 
 # Filtered Data
-if data_input:
-    st.markdown(
-        "<h3 style='text-align: center; '>Your Filtered Data</h3>",
-        unsafe_allow_html=True)
-else:
-    st.markdown(
-        "<h3 style='text-align: center; '>Example Filtered Data</h3>",
-        unsafe_allow_html=True)
-fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
-sns.set(style="ticks", rc={"lines.linewidth": 7})
-sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1), y=X_filt, ax=ax2, color='orange')
-ax2.axis('off')
-st.pyplot(fig2, transparent=True)
+if data_input!=2:
+    if data_input:
+        st.markdown(
+            "<h3 style='text-align: center; '>Your Filtered Data</h3>",
+            unsafe_allow_html=True)
+    else:
+        st.markdown(
+            "<h3 style='text-align: center; '>Example Filtered Data</h3>",
+            unsafe_allow_html=True)
+    fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
+    sns.set(style="ticks", rc={"lines.linewidth": 7})
+    sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1), y=X_filt, ax=ax2, color='orange')
+    ax2.axis('off')
+    st.pyplot(fig2, transparent=True)
 
 # # FFT
 # st.markdown(
@@ -142,30 +168,7 @@ st.pyplot(fig2, transparent=True)
 # st.pyplot(fig3, transparent=True)
 
 #url = 'https://exohunter-container-2zte5wxl7q-an.a.run.app'
-curve_url = 'http://127.0.0.1:8000/predictcurve'
-id_url = 'http://127.0.0.1:8000/predictid'
 
-# Output results
-if data_input:
-    st.subheader('Result:')
-#Getting result from the API
-if data_input==1:
-    with st.spinner('Running calculation...'):
-        try:
-            response = requests.post(curve_url,json={'instances': list_of_values})
-        except:
-            st.error('Error connecting to API')
-elif data_input==2:
-    with st.spinner('Running calculation...'):
-        try:
-            response = requests.post(id_url, json={'kepid': kepid})
-        except:
-            st.error('Error connecting to API')
-if response is not None:
-    response = response.json()
-    st.success('Done!')
-    final_res = response['prediction']
-    # final_res
 
 if final_res:
     st.metric(label='Confidence level', value='60%', delta=None, delta_color="normal")
