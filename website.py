@@ -44,12 +44,12 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 #             unsafe_allow_html=True)
 
 # Title
-st.markdown("<h1 style='text-align: center; '>Welcome to The Exoplanet Hunter</h1>",
+st.markdown("<h1 style='text-align: center;color:white'>Welcome to The Exoplanet Hunter</h1>",
             unsafe_allow_html=True)
 
 # Subtitle
 st.markdown(
-    "<h2 style='text-align: center; '>Please upload a Light Curve below or enter a valid KepID:</h2>",
+    "<h2 style='text-align: center;color:white'>Please upload a Light Curve below or enter a valid KepID:</h2>",
     unsafe_allow_html=True)
 
 # Initialise values
@@ -83,7 +83,7 @@ if kepid != '':
     if kepid in keplers[['kepid']].values:
         data_input=2
 
-st.markdown((data_input, kepid))
+#st.markdown((data_input, kepid))
 
 
 #Prep data and dump data into a csv file for animation.py to use
@@ -97,31 +97,48 @@ if data_input!=2:
         X_imp = df.squeeze()
         X_filt = savgol_filter(X_imp, 71, 3)
 
-
-curve_url = 'http://127.0.0.1:8000/predictcurve'
-id_url = 'http://127.0.0.1:8000/predictid'
+base_url = 'https://exohunter-api-2zte5wxl7q-an.a.run.app'
+curve_url = base_url + '/predictcurve'
+id_url = base_url + '/predictid'
+# curve_url = 'http://127.0.0.1:8000/predictcurve'
+# id_url = 'http://127.0.0.1:8000/predictid'
 
 # Output results
 if data_input:
-    st.subheader('Result:')
+    st.markdown(
+        "<h2 style='text-align: center;color:white '>Result:</h2>",
+        unsafe_allow_html=True)
 #Getting result from the API
 if data_input == 1:
     with st.spinner('Running calculation...'):
-        # try:
-        response = requests.post(curve_url, json={'instances': list_of_values})
-        # except:
-        #     st.error('Error connecting to API')
+        try:
+            response = requests.post(curve_url, json={'instances': list_of_values})
+        except:
+            st.error('Error connecting to API')
 elif data_input == 2:
     with st.spinner('Running calculation...'):
         try:
             response = requests.post(id_url, json={'kepid': kepid})
         except:
             st.error('Error connecting to API')
+
 if response is not None:
     response = response.json()
     st.success('Done!')
     final_res = response['prediction']
-    # final_res
+    if final_res == 'This star is LIKELY to have exoplanet(s)':
+        st.markdown(
+        f"<h3 style='text-align: center;color:green'>{final_res}</h3>",
+        unsafe_allow_html=True)
+    else:
+        st.markdown(
+            f"<h3 style='text-align: center;color:red'>{final_res}</h3>",
+            unsafe_allow_html=True)
+
+if data_input == 2:
+    response.pop('prediction', None)
+    response_df = pd.DataFrame(response)
+st.dataframe(response_df)
 
 
 # Output the user's data in a digestible graph
@@ -169,13 +186,11 @@ if data_input!=2:
 
 #url = 'https://exohunter-container-2zte5wxl7q-an.a.run.app'
 
-
-if final_res:
-    st.metric(label='Confidence level', value='60%', delta=None, delta_color="normal")
+# if final_res:
+#     st.metric(label='Confidence level', value='60%', delta=None, delta_color="normal")
 
 
 if final_res == 'This star is LIKELY to have exoplanet(s)':
-    st.balloons()
     st.text(
         '''⣿⣿⣿⣿⣿⡏⠉⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿
 ⣿⣿⣿⣿⣿⣿⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁⠀⣿
@@ -194,25 +209,55 @@ if final_res == 'This star is LIKELY to have exoplanet(s)':
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⣀⣀⣾⣿⣿⣿⣿'''
     )
 
-    kepler_name  = st.text_input(label='Awesome! What would you like to nickname your planet?', value='keplerid')
-
-    #Run the script to make the animation
-    os.system("manim --quality l --format mp4 animation.py FollowingGraphCamera")
-    #Remove the partial animation
-    os.system("find media/videos/animation/480p15/partial_movie_files/FollowingGraphCamera -name '*.mp4' -delete")
-    #Display the animation on streamlit
-    video_file = open('media/videos/animation/480p15/FollowingGraphCamera.mp4', 'rb')
-    video_bytes = video_file.read()
-
-if final_res: # Depends on data_input
-    st.title('Animation')
-    if os.path.isfile('media/videos/animation/480p15/FollowingGraphCamera.mp4'):
-        st.video(video_bytes)
-        with open("media/videos/animation/480p15/FollowingGraphCamera.mp4", "rb") as file:
-            btn = st.download_button(
-                label="Download video",
-                data=file,
-                file_name="video.mp4",
-                mime="video/mp4")
+    #kepler_name  = st.text_input(label='Awesome! What would you like to nickname your planet?', value='keplerid')
+if data_input == 2:
+    if final_res == 'This star is LIKELY to have exoplanet(s)':
+        #Run the script to make the animation
+        os.system(
+            "manim --quality l --format mp4 animation.py FollowingGraphCamera"
+            )
+        #Remove the partial animation
+        os.system(
+            "find media/videos/animation/480p15/partial_movie_files/FollowingGraphCamera -name '*.mp4' -delete"
+            )
+        #Display the animation on streamlit
+        video_file = open(
+            'media/videos/animation/480p15/FollowingGraphCamera.mp4', 'rb'
+            )
+        video_bytes = video_file.read()
     else:
-        st.write('Sorry, no animation for you')
+        #Run the script to make the animation
+        os.system(
+            "manim --quality l --format mp4 animation.py NoExo"
+            )
+        #Remove the partial animation
+        os.system(
+            "find media/videos/animation/480p15/partial_movie_files/NoExo -name '*.mp4' -delete"
+            )
+        #Display the animation on streamlit
+        video_file = open(
+            'media/videos/animation/480p15/NoExo.mp4', 'rb'
+            )
+        video_bytes = video_file.read()
+
+
+    if final_res: # Depends on data_input
+        st.markdown(
+            "<h1 style='text-align: center;color:white'>Animation</h1>",
+            unsafe_allow_html=True)
+        if (final_res == 'This star is LIKELY to have exoplanet(s)') and (os.path.isfile('media/videos/animation/480p15/FollowingGraphCamera.mp4')):
+            st.video(video_bytes)
+            with open("media/videos/animation/480p15/FollowingGraphCamera.mp4", "rb") as file:
+                btn = st.download_button(
+                    label="Download video",
+                    data=file,
+                    file_name="video.mp4",
+                    mime="video/mp4")
+        elif (final_res == 'This star is likely to NOT have exoplanet') and (os.path.isfile('media/videos/animation/480p15/NoExo.mp4')):
+            st.video(video_bytes)
+            with open("media/videos/animation/480p15/NoExo.mp4",
+                      "rb") as file:
+                btn = st.download_button(label="Download video",
+                                         data=file,
+                                         file_name="video.mp4",
+                                         mime="video/mp4")
