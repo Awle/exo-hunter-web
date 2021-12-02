@@ -23,6 +23,7 @@ s3fs
 manim
 streamlit
 
+
 # utilities
 six>=1.14
 joblib
