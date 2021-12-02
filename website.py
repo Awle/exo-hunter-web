@@ -113,10 +113,10 @@ if data_input == 1:
         #     st.error('Error connecting to API')
 elif data_input == 2:
     with st.spinner('Running calculation...'):
-        try:
-            response = requests.post(id_url, json={'kepid': kepid})
-        except:
-            st.error('Error connecting to API')
+        # try:
+        response = requests.post(id_url, json={'kepid': kepid})
+        # except:
+            # st.error('Error connecting to API')
 if response is not None:
     response = response.json()
     st.success('Done!')
