@@ -1,71 +1,42 @@
 from manim import *
 import pandas as pd
+from website import response
 
-# df = pd.read_csv('animation_data.csv')
-# list_of_values = list(df['0'].values)[1:]
-# length = len(list_of_values)
-# x = range(1,length + 1)
-# coords = list(zip(list_of_values,x))
 
-# class FollowingGraphCamera(MovingCameraScene):
-#     def construct(self):
-#         self.camera.frame.save_state()
-
-#         dots = VGroup(*[Dot().move_to(self.coords_to_point(coord[0],coord[1])) for coord in coords])
-#         self.add(dots)
-
-#         # create the axes and the curve
-#         ax = Axes(x_range=[-1, 100], y_range=[-1, 10])
-#         graph = ax.plot(list_of_values, color=BLUE)#, x_range=[0, 100])
-
-#         # create dots based on the graph
-#         moving_dot = Dot(ax.i2gp(graph.t_min, graph), color=ORANGE)
-#         dot_1 = Dot(ax.i2gp(graph.t_min, graph))
-#         dot_2 = Dot(ax.i2gp(graph.t_max, graph))
-
-#         self.add(ax, graph, dot_1, dot_2, moving_dot)
-#         self.play(self.camera.frame.animate.scale(0.5).move_to(moving_dot))
-
-#         def update_curve(mob):
-#             mob.move_to(moving_dot.get_center())
-
-#         self.camera.frame.add_updater(update_curve)
-#         self.play(MoveAlongPath(moving_dot, graph, rate_func=linear))
-#         self.camera.frame.remove_updater(update_curve)
-
-#         self.play(Restore(self.camera.frame))
-
-class FollowingGraphCamera(MovingCameraScene):
+class NoExo(ThreeDScene):
     def construct(self):
-        self.camera.frame.save_state()
+        self.set_camera_orientation(phi=75 * DEGREES, theta=-45 * DEGREES)
 
-        # create the axes and the curve
-        ax = Axes(x_range=[-15, 15], y_range=[-15, 15])
-        graph = ax.plot(lambda x: 5 * np.sin(x), color=BLUE, x_range=[0, 6 * PI])
+        sphere1 = Sphere(center=(0, 0, 0), radius=2, resolution=(50, 50))
 
-        # create dots based on the graph
-        moving_dot = Dot(ax.i2gp(graph.t_min, graph), color=ORANGE)
-        dot_1 = Dot(ax.i2gp(graph.t_min, graph))
-        dot_2 = Dot(ax.i2gp(graph.t_max, graph))
+        sphere1.set_color(YELLOW)
 
+        text3d = Text("This star in unlikely to have any exoplanet",
+                      font_size=36).set_shade_in_3d(False)
+        text3d.set_color(RED)
+        text3d.set_opacity(opacity=3)
 
-        ellipse_1 = Ellipse(width=9.0, height=11.0, color=BLUE)
-        dot = Dot()
-        dott = dot.copy()
-        dot2 = Dot(color=BLUE, radius=0.3, point=[4.5,0,0])
-        dot4 = Dot(color=YELLOW,radius=1).shift(UP).shift(UP)
+        axes = ThreeDAxes()
 
-        line = Line(dot2.get_center(), dot4.get_center()).set_color(ORANGE)
+        dot1 = Dot3D(point=(0.5, -2, 0.8),
+                     radius=0.3,
+                     color=BLACK,
+                     resolution=(20, 20))
+        dot2 = Dot3D(point=(2, -0.5, 0.8),
+                     radius=0.3,
+                     color=BLACK,
+                     resolution=(20, 20))
+        dot3 = Dot3D(point=(1.5, -1.5, -0.5),
+                     radius=0.6,
+                     color=BLACK,
+                     resolution=(20, 20))
 
-
-        self.add(ax, graph, dot_1, dot_2, moving_dot, ellipse_1, dott, dot, line)  #,b1,b1text,pl_text,star_text)
+        self.add_fixed_in_frame_mobjects(text3d)
+        self.add_foreground_mobjects(text3d)
+        self.add(sphere1, text3d)
+        self.play(Write(text3d))
+        self.add_foreground_mobjects(text3d)
         self.wait(1)
-        self.play(self.camera.frame.animate.scale(1.5))
-
-
-        self.play(GrowFromCenter(ellipse_1))
-        self.play(Transform(dot, dot4))
-        self.play(Transform(dott,dot2))
-        self.play(MoveAlongPath(dot2, ellipse_1), run_time=10, rate_func=linear)
-        self.play(line.animate(rate_func=linear))
-        self.wait()
+        self.play(FadeIn(dot1, dot2, dot3), run_time=1)
+        self.play(Unwrite(text3d, reverse=False))
+        self.wait(0.5)
