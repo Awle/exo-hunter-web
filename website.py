@@ -113,8 +113,8 @@ if data_input != 2:
     else:
         st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
                     unsafe_allow_html=True)
-    fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
+    fig1, ax1 = plt.subplots(1, 1, figsize=(18, 4))
+    sns.set(style="ticks", rc={"lines.linewidth": 2})
     sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1),
                  y=X_imp,
                  ax=ax1,
@@ -131,8 +131,8 @@ if data_input != 2:
         st.markdown(
             "<h3 style='text-align: center; '>Example Filtered Data</h3>",
             unsafe_allow_html=True)
-    fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
+    fig2, ax2 = plt.subplots(1, 1, figsize=(18, 4))
+    sns.set(style="ticks", rc={"lines.linewidth": 2})
     sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1),
                  y=X_filt,
                  ax=ax2,
@@ -180,8 +180,18 @@ if response is not None:
 if data_input == 2:
     response.pop('prediction', None)
     response_df = pd.DataFrame(response)
-st.dataframe(response_df)
-
+    solar_mass = response_df['solar_mass'][0]
+    solar_radius = response_df['solar_radius'][0]
+    st.markdown(f"<h2 style='text-align: center;color:yellow'>Star info: </h2>",unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;color:white'>Mass: {solar_mass} Sun(s)</h3>",unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;color:white'>Radius: {solar_radius} Sun(s)</h3>",unsafe_allow_html=True)
+    for i in range(0,len(response_df['planet_radius'])):
+        st.markdown(f"<h2 style='text-align: center;color:orange'>Planet {i+1} info:</h2>",unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Radius: {round(response_df['planet_radius'][i],3)} Earth(s)</h3>",unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Orbital period: {round(response_df['orbital_period'][i],3)} days(s))</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Distance planet-star: {round(response_df['planet_star_rad'][i],3)} AU(s)</h3>", unsafe_allow_html=True)
+        st.text(" ")
+    st.dataframe(response_df, height=100)
 
 # # FFT
 # st.markdown(
