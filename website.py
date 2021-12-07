@@ -3,13 +3,13 @@ import requests
 import os
 import pandas as pd
 from manim import *
-
+import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import savgol_filter
 
 # Configure page
-st.set_page_config(layout="wide", page_title="ExoHunter", page_icon="🪐")
+st.set_page_config(layout="centered", page_title="ExoHunter", page_icon="🪐")
 
 #Reduce all padding
 padding = 0
@@ -60,6 +60,7 @@ df=None
 list_of_values=None
 final_res=None
 response = None
+response_df = None
 
 # Read KepID database
 keplers = pd.read_csv('data/keplerid_for_manim.csv')
@@ -103,6 +104,43 @@ id_url = base_url + '/predictid'
 # curve_url = 'http://127.0.0.1:8000/predictcurve'
 # id_url = 'http://127.0.0.1:8000/predictid'
 
+# Output the user's data in a digestible graph
+# Raw Data
+if data_input != 2:
+    if data_input == 1:
+        st.markdown("<h3 style='text-align: center; '>Your Raw Data</h3>",
+                    unsafe_allow_html=True)
+    else:
+        st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
+                    unsafe_allow_html=True)
+    fig1, ax1 = plt.subplots(1, 1, figsize=(18, 4))
+    sns.set(style="ticks", rc={"lines.linewidth": 2})
+    sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1),
+                 y=X_imp,
+                 ax=ax1,
+                 color='orange')
+    ax1.axis('off')
+    st.pyplot(fig1, transparent=True)
+
+# Filtered Data
+if data_input != 2:
+    if data_input:
+        st.markdown("<h3 style='text-align: center; '>Your Filtered Data</h3>",
+                    unsafe_allow_html=True)
+    else:
+        st.markdown(
+            "<h3 style='text-align: center; '>Example Filtered Data</h3>",
+            unsafe_allow_html=True)
+    fig2, ax2 = plt.subplots(1, 1, figsize=(18, 4))
+    sns.set(style="ticks", rc={"lines.linewidth": 2})
+    sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1),
+                 y=X_filt,
+                 ax=ax2,
+                 color='orange')
+    ax2.axis('off')
+    st.pyplot(fig2, transparent=True)
+
+
 # Output results
 if data_input:
     st.markdown(
@@ -124,6 +162,10 @@ elif data_input == 2:
 
 if response is not None:
     response = response.json()
+    json_object = json.dumps(response, indent=4)
+    # Writing to sample.json
+    with open("response.json", "w") as outfile:
+        outfile.write(json_object)
     st.success('Done!')
     final_res = response['prediction']
     if final_res == 'This star is LIKELY to have exoplanet(s)':
@@ -138,41 +180,18 @@ if response is not None:
 if data_input == 2:
     response.pop('prediction', None)
     response_df = pd.DataFrame(response)
-st.dataframe(response_df)
-
-
-# Output the user's data in a digestible graph
-
-# Raw Data
-if data_input!=2:
-    if data_input==1:
-        st.markdown(
-            "<h3 style='text-align: center; '>Your Raw Data</h3>",
-            unsafe_allow_html=True)
-    else:
-        st.markdown("<h3 style='text-align: center; '>Example Raw Data</h3>",
-                    unsafe_allow_html=True)
-    fig1, ax1 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
-    sns.lineplot(x=np.arange(0, X_imp.shape[-1], 1), y=X_imp, ax=ax1, color='orange')
-    ax1.axis('off')
-    st.pyplot(fig1, transparent=True)
-
-# Filtered Data
-if data_input!=2:
-    if data_input:
-        st.markdown(
-            "<h3 style='text-align: center; '>Your Filtered Data</h3>",
-            unsafe_allow_html=True)
-    else:
-        st.markdown(
-            "<h3 style='text-align: center; '>Example Filtered Data</h3>",
-            unsafe_allow_html=True)
-    fig2, ax2 = plt.subplots(1, 1, figsize=(72, 16))
-    sns.set(style="ticks", rc={"lines.linewidth": 7})
-    sns.lineplot(x=np.arange(0, X_filt.shape[-1], 1), y=X_filt, ax=ax2, color='orange')
-    ax2.axis('off')
-    st.pyplot(fig2, transparent=True)
+    solar_mass = response_df['solar_mass'][0]
+    solar_radius = response_df['solar_radius'][0]
+    st.markdown(f"<h2 style='text-align: center;color:yellow'>Star info: </h2>",unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;color:white'>Mass: {solar_mass} Sun(s)</h3>",unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;color:white'>Radius: {solar_radius} Sun(s)</h3>",unsafe_allow_html=True)
+    for i in range(0,len(response_df['planet_radius'])):
+        st.markdown(f"<h2 style='text-align: center;color:orange'>Planet {i+1} info:</h2>",unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Radius: {round(response_df['planet_radius'][i],3)} Earth(s)</h3>",unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Orbital period: {round(response_df['orbital_period'][i],3)} days(s))</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;color:white'>Distance planet-star: {round(response_df['planet_star_rad'][i],3)} AU(s)</h3>", unsafe_allow_html=True)
+        st.text(" ")
+    st.dataframe(response_df, height=100)
 
 # # FFT
 # st.markdown(
@@ -192,38 +211,33 @@ if data_input!=2:
 
 if final_res == 'This star is LIKELY to have exoplanet(s)':
     st.text(
-        '''⣿⣿⣿⣿⣿⡏⠉⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿
-⣿⣿⣿⣿⣿⣿⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁⠀⣿
-⣿⣿⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠙⠿⠿⠿⠻⠿⠿⠟⠿⠛⠉⠀⠀⠀⠀⠀⣸⣿
-⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣴⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀⢰⣹⡆⠀⠀⠀⠀⠀⠀⣭⣷⠀⠀⠀⠸⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠈⠉⠀⠀⠤⠄⠀⠀⠀⠉⠁⠀⠀⠀⠀⢿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⢾⣿⣷⠀⠀⠀⠀⡠⠤⢄⠀⠀⠀⠠⣿⣿⣷⠀⢸⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⡀⠉⠀⠀⠀⠀⠀⢄⠀⢀⠀⠀⠀⠀⠉⠉⠁⠀⠀⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+        '''⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠉⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠙⠿⠿⠿⠻⠿⠿⠟⠿⠛⠉⠀⠀⠀⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀⢰⣹⡆⠀⠀⠀⠀⠀⠀⣭⣷⠀⠀⠀⠸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠈⠉⠀⠀⠤⠄⠀⠀⠀⠉⠁⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢾⣿⣷⠀⠀⠀⠀⡠⠤⢄⠀⠀⠀⠠⣿⣿⣷⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠉⠀⠀⠀⠀⠀⢄⠀⢀⠀⠀⠀⠀⠉⠉⠁⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 
-⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⣠⣤⣶⣶
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⢰⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⣀⣀⣾⣿⣿⣿⣿'''
-    )
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⣠⣤⣶⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⣀⣀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿''')
 
     #kepler_name  = st.text_input(label='Awesome! What would you like to nickname your planet?', value='keplerid')
 if data_input == 2:
     if final_res == 'This star is LIKELY to have exoplanet(s)':
         #Run the script to make the animation
-        os.system(
-            "manim --quality l --format mp4 animation.py FollowingGraphCamera"
-            )
+        os.system("manim --quality l --format mp4 animation.py LoopOrbit")
         #Remove the partial animation
         os.system(
-            "find media/videos/animation/480p15/partial_movie_files/FollowingGraphCamera -name '*.mp4' -delete"
-            )
+            "find media/videos/animation/480p15/partial_movie_files/LoopOrbit -name '*.mp4' -delete"
+        )
         #Display the animation on streamlit
-        video_file = open(
-            'media/videos/animation/480p15/FollowingGraphCamera.mp4', 'rb'
-            )
+        video_file = open('media/videos/animation/480p15/LoopOrbit.mp4', 'rb')
         video_bytes = video_file.read()
     else:
         #Run the script to make the animation
@@ -245,9 +259,11 @@ if data_input == 2:
         st.markdown(
             "<h1 style='text-align: center;color:white'>Animation</h1>",
             unsafe_allow_html=True)
-        if (final_res == 'This star is LIKELY to have exoplanet(s)') and (os.path.isfile('media/videos/animation/480p15/FollowingGraphCamera.mp4')):
+        if (final_res == 'This star is LIKELY to have exoplanet(s)') and (
+                os.path.isfile('media/videos/animation/480p15/LoopOrbit.mp4')):
             st.video(video_bytes)
-            with open("media/videos/animation/480p15/FollowingGraphCamera.mp4", "rb") as file:
+            with open("media/videos/animation/480p15/LoopOrbit.mp4",
+                      "rb") as file:
                 btn = st.download_button(
                     label="Download video",
                     data=file,
